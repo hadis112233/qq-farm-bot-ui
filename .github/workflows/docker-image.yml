@@ -1,67 +1,65 @@
-name: Sync Upstream and Build Docker
+name: Sync Upstream and Build Docker Image
 
 on:
+  push:
+    branches: ["main"]
   schedule:
-    # 每 6 小时同步一次（可改）
-    - cron: "0 */1 * * *"
+    - cron: "*/30 * * * *" # GitHub Actions 最小 5 分钟
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: sync-build-${{ github.ref }}
-  cancel-in-progress: false
-
-env:
-  UPSTREAM_REPO: https://github.com/Penty-d/qq-farm-bot-ui.git
-  DEFAULT_BRANCH: main
-  IMAGE_NAME: iphone777p/qq-farm-bot-ui-docker
+  group: sync-and-build-main
+  cancel-in-progress: true
 
 jobs:
   sync:
-    name: Sync from upstream
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.sync.outputs.changed }}
     steps:
-      - name: Checkout current repo
+      - name: Checkout fork
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.DEFAULT_BRANCH }}
+          ref: main
           fetch-depth: 0
 
-      - name: Sync upstream
-        id: sync
-        shell: bash
+      - name: Configure git identity
         run: |
-          set -euo pipefail
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git remote add upstream "${UPSTREAM_REPO}" 2>/dev/null || git remote set-url upstream "${UPSTREAM_REPO}"
-          git fetch upstream "${DEFAULT_BRANCH}"
-          git fetch origin "${DEFAULT_BRANCH}"
-          LOCAL_SHA=$(git rev-parse "origin/${DEFAULT_BRANCH}")
-          UPSTREAM_SHA=$(git rev-parse "upstream/${DEFAULT_BRANCH}")
-          echo "local:    ${LOCAL_SHA}"
-          echo "upstream: ${UPSTREAM_SHA}"
-          if [[ "${LOCAL_SHA}" == "${UPSTREAM_SHA}" ]]; then
-            echo "No changes from upstream."
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Sync with upstream (or skip on push event)
+        id: sync
+        run: |
+          set -e
+          # 如果是你自己 push 到 main，直接标记 changed=true，进入构建
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # 添加/更新 upstream
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url upstream https://github.com/Penty-d/qq-farm-bot-ui.git
+          else
+            git remote add upstream https://github.com/Penty-d/qq-farm-bot-ui.git
+          fi
+          git fetch upstream main
+          LOCAL_SHA=$(git rev-parse HEAD)
+          UPSTREAM_SHA=$(git rev-parse upstream/main)
+          echo "Local:    $LOCAL_SHA"
+          echo "Upstream: $UPSTREAM_SHA"
+          if [ "$LOCAL_SHA" = "$UPSTREAM_SHA" ]; then
+            echo "No upstream changes."
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git checkout "${DEFAULT_BRANCH}"
-          # 仅允许 fast-forward，避免误覆盖你的自定义提交
-          if git merge --ff-only "upstream/${DEFAULT_BRANCH}"; then
-            git push origin "${DEFAULT_BRANCH}"
-            echo "Synced and pushed."
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Fast-forward merge failed (branch diverged). Please resolve manually."
-            exit 1
-          fi
+          # 仅允许快进合并，避免自动生成冲突提交
+          git merge --ff-only upstream/main
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
   build:
-    name: Build and push image (latest only)
     needs: sync
     if: needs.sync.outputs.changed == 'true'
     runs-on: ubuntu-latest
@@ -69,26 +67,25 @@ jobs:
       - name: Checkout latest main
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.DEFAULT_BRANCH }}
+          ref: main
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: Set up Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login Docker Hub
+      - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push (latest only)
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          # 如果你的 Dockerfile 不在 core/Dockerfile，请改这里
           file: core/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ${{ env.IMAGE_NAME }}:latest
+          tags: iphone777p/qq-farm-bot-ui-docker:latest
