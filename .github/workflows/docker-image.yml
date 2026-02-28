@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
   schedule:
-    - cron: "*/30 * * * *" # GitHub Actions 最小 5 分钟
+    - cron: "0 8 * * *" # GitHub Actions 最小 5 分钟
   workflow_dispatch:
 
 permissions:
