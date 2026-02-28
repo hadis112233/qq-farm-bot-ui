@@ -16,7 +16,7 @@ concurrency:
 env:
   UPSTREAM_REPO: https://github.com/Penty-d/qq-farm-bot-ui.git
   DEFAULT_BRANCH: main
-  IMAGE_NAME: matata22/qq-farm-bot-ui-docker
+  IMAGE_NAME: iphone777p/qq-farm-bot-ui-docker
 
 jobs:
   sync:
