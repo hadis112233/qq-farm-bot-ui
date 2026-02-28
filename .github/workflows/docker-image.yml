@@ -1,0 +1,94 @@
+name: Sync Upstream and Build Docker
+
+on:
+  schedule:
+    # 每 6 小时同步一次（可改）
+    - cron: "0 */1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-build-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPO: https://github.com/Penty-d/qq-farm-bot-ui.git
+  DEFAULT_BRANCH: main
+  IMAGE_NAME: matata22/qq-farm-bot-ui-docker
+
+jobs:
+  sync:
+    name: Sync from upstream
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.sync.outputs.changed }}
+    steps:
+      - name: Checkout current repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEFAULT_BRANCH }}
+          fetch-depth: 0
+
+      - name: Sync upstream
+        id: sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream "${UPSTREAM_REPO}" 2>/dev/null || git remote set-url upstream "${UPSTREAM_REPO}"
+          git fetch upstream "${DEFAULT_BRANCH}"
+          git fetch origin "${DEFAULT_BRANCH}"
+          LOCAL_SHA=$(git rev-parse "origin/${DEFAULT_BRANCH}")
+          UPSTREAM_SHA=$(git rev-parse "upstream/${DEFAULT_BRANCH}")
+          echo "local:    ${LOCAL_SHA}"
+          echo "upstream: ${UPSTREAM_SHA}"
+          if [[ "${LOCAL_SHA}" == "${UPSTREAM_SHA}" ]]; then
+            echo "No changes from upstream."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git checkout "${DEFAULT_BRANCH}"
+          # 仅允许 fast-forward，避免误覆盖你的自定义提交
+          if git merge --ff-only "upstream/${DEFAULT_BRANCH}"; then
+            git push origin "${DEFAULT_BRANCH}"
+            echo "Synced and pushed."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Fast-forward merge failed (branch diverged). Please resolve manually."
+            exit 1
+          fi
+  build:
+    name: Build and push image (latest only)
+    needs: sync
+    if: needs.sync.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEFAULT_BRANCH }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push (latest only)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          # 如果你的 Dockerfile 不在 core/Dockerfile，请改这里
+          file: core/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.IMAGE_NAME }}:latest
