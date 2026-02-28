@@ -35,7 +35,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="h-screen w-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+  <div class="w-full flex items-start justify-center bg-gray-100 px-4 pt-[10vh] min-h-dvh sm:items-center dark:bg-gray-900 sm:pt-0">
     <div class="max-w-md w-full rounded-xl bg-white p-8 shadow-lg space-y-6 dark:bg-gray-800">
       <div class="mb-8 py-4 text-center">
         <h1 class="text-3xl text-gray-900 font-bold tracking-tight dark:text-white">

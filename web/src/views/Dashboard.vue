@@ -101,7 +101,7 @@ const logs = [
 
 const displayName = computed(() => {
   const account = accountStore.currentAccount
-  
+
   // Try to use nickname from status (game server)
   const gameName = status.value?.status?.name
   if (gameName) {
@@ -319,7 +319,7 @@ async function refreshBag(force = false) {
   await bagStore.fetchBag(currentAccountId.value)
 }
 
-async function refresh() {
+async function refresh(forceReloadLogs = false) {
   if (currentAccountId.value) {
     const acc = currentAccount.value
     if (!acc)
@@ -331,7 +331,7 @@ async function refresh() {
       await statusStore.fetchAccountLogs()
     }
 
-    if (hasActiveLogFilter.value || !realtimeConnected.value) {
+    if (forceReloadLogs || hasActiveLogFilter.value || !realtimeConnected.value) {
       await statusStore.fetchLogs(currentAccountId.value, {
         module: filter.module || undefined,
         event: filter.event || undefined,
@@ -343,6 +343,14 @@ async function refresh() {
     // 仅在账号已运行且连接就绪后拉背包，避免启动阶段触发500
     await refreshBag()
   }
+}
+
+function onLogFilterChange() {
+  refresh(true)
+}
+
+function onLogSearchTrigger() {
+  refresh(true)
 }
 
 watch(currentAccountId, () => {
@@ -362,7 +370,7 @@ watch(() => JSON.stringify(status.value?.operations || {}), (next, prev) => {
 
 watch(hasActiveLogFilter, (enabled) => {
   statusStore.setRealtimeLogsEnabled(!enabled)
-  refresh()
+  refresh(enabled)
 })
 
 function onLogScroll(e: Event) {
@@ -555,21 +563,21 @@ useIntervalFn(updateCountdowns, 1000)
                 v-model="filter.module"
                 :options="modules"
                 class="w-32"
-                @change="refresh"
+                @change="onLogFilterChange"
               />
 
               <BaseSelect
                 v-model="filter.event"
                 :options="events"
                 class="w-32"
-                @change="refresh"
+                @change="onLogFilterChange"
               />
 
               <BaseSelect
                 v-model="filter.isWarn"
                 :options="logs"
                 class="w-32"
-                @change="refresh"
+                @change="onLogFilterChange"
               />
 
               <BaseInput
@@ -577,14 +585,14 @@ useIntervalFn(updateCountdowns, 1000)
                 placeholder="关键词..."
                 class="w-32"
                 clearable
-                @keyup.enter="refresh"
-                @clear="refresh"
+                @keyup.enter="onLogSearchTrigger"
+                @clear="onLogSearchTrigger"
               />
 
               <BaseButton
                 variant="primary"
                 size="sm"
-                @click="refresh"
+                @click="onLogSearchTrigger"
               >
                 <div class="i-carbon-search" />
               </BaseButton>
