@@ -56,7 +56,7 @@ jobs:
             exit 0
           fi
           # 仅允许快进合并，避免自动生成冲突提交
-          git merge --ff-only upstream/main
+          git merge upstream/main
           git push origin HEAD:main
           echo "changed=true" >> "$GITHUB_OUTPUT"
   build:
