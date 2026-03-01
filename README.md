@@ -28,6 +28,10 @@ qq农场游戏交流群：1090049575
 
 ---
 
+## 项目贡献
+
+克隆仓库并切换到pr分支进行修改，提交拉取请求的时候也是合并到pr分支，这么做是因为我没有太多时间单独审pr，把所有pr合并到一个分支过一段时间再一起审更方便，当我确认没有问题时就和连同新版本更新一起合并到主分支
+
 ## 功能特性
 
 ### 多账号管理
@@ -223,7 +227,6 @@ qq-farm-bot-ui/
 - 核心功能：[linguo2625469/qq-farm-bot](https://github.com/linguo2625469/qq-farm-bot)
 - 部分功能：[QianChenJun/qq-farm-bot](https://github.com/QianChenJun/qq-farm-bot)
 - 扫码登录：[lkeme/QRLib](https://github.com/lkeme/QRLib)
-- 推送通知：[imaegoo/pushoo](https://github.com/imaegoo/pushoo)
 
 ## 免责声明
 
