@@ -15,6 +15,7 @@ const PUSHOO_CHANNELS = new Set([
     'pushdeer', 'igot', 'telegram', 'feishu', 'ifttt', 'wecombot',
     'discord', 'wxpusher',
 ]);
+const INTERVAL_MAX_SEC = 86400;
 const DEFAULT_OFFLINE_REMINDER = {
     channel: 'webhook',
     reloginUrlMode: 'none',
@@ -444,7 +445,11 @@ function getIntervals(accountId) {
 
 function normalizeIntervals(intervals) {
     const src = (intervals && typeof intervals === 'object') ? intervals : {};
-    const toSec = (v, d) => Math.max(1, Number.parseInt(v, 10) || d);
+    const toSec = (v, d) => {
+        const n = Number.parseInt(v, 10);
+        const base = Number.isFinite(n) ? n : d;
+        return Math.max(1, Math.min(INTERVAL_MAX_SEC, base));
+    };
     const farm = toSec(src.farm, 2);
     const friend = toSec(src.friend, 10);
 

@@ -116,6 +116,7 @@ let onWsError = null;
 let wsErrorHandledAt = 0;
 let lastDailyRunDate = '';
 const workerScheduler = createScheduler('worker');
+const INTERVAL_MAX_SEC = 86400;
 
 function isDailyRoutineEnabled(auto) {
     const a = (auto && typeof auto === 'object') ? auto : {};
@@ -164,9 +165,14 @@ function startDailyRoutineTimer() {
 }
 
 function normalizeIntervalRangeSec(minSec, maxSec, fallbackSec) {
-    const fallback = Math.max(1, Number.parseInt(fallbackSec, 10) || 1);
-    let min = Math.max(1, Number.parseInt(minSec, 10) || fallback);
-    let max = Math.max(1, Number.parseInt(maxSec, 10) || fallback);
+    const clampSec = (value, fallbackValue) => {
+        const n = Number.parseInt(value, 10);
+        const base = Number.isFinite(n) ? n : fallbackValue;
+        return Math.max(1, Math.min(INTERVAL_MAX_SEC, base));
+    };
+    const fallback = clampSec(fallbackSec, 1);
+    let min = clampSec(minSec, fallback);
+    let max = clampSec(maxSec, fallback);
     if (min > max) [min, max] = [max, min];
     return { min, max };
 }

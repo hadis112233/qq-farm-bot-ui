@@ -471,24 +471,28 @@ async function handleTestOffline() {
               label="农场巡查最小 (秒)"
               type="number"
               min="1"
+              max="86400"
             />
             <BaseInput
               v-model.number="localSettings.intervals.farmMax"
               label="农场巡查最大 (秒)"
               type="number"
               min="1"
+              max="86400"
             />
             <BaseInput
               v-model.number="localSettings.intervals.friendMin"
               label="好友巡查最小 (秒)"
               type="number"
               min="1"
+              max="86400"
             />
             <BaseInput
               v-model.number="localSettings.intervals.friendMax"
               label="好友巡查最大 (秒)"
               type="number"
               min="1"
+              max="86400"
             />
           </div>
 

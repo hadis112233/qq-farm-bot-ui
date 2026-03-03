@@ -6,6 +6,7 @@
 const { createModuleLogger } = require('./logger');
 
 const logger = createModuleLogger('config-validator');
+const INTERVAL_MAX_SEC = 86400;
 
 // 校验规则定义
 const VALIDATORS = {
@@ -81,12 +82,12 @@ const AUTOMATION_SCHEMA = {
 const INTERVALS_SCHEMA = {
     type: 'object',
     properties: {
-        farm: { type: 'number', min: 1, max: 3600, default: 2 },
-        friend: { type: 'number', min: 1, max: 3600, default: 10 },
-        farmMin: { type: 'number', min: 1, max: 3600, default: 2 },
-        farmMax: { type: 'number', min: 1, max: 3600, default: 2 },
-        friendMin: { type: 'number', min: 1, max: 3600, default: 10 },
-        friendMax: { type: 'number', min: 1, max: 3600, default: 10 },
+        farm: { type: 'number', min: 1, max: INTERVAL_MAX_SEC, default: 2 },
+        friend: { type: 'number', min: 1, max: INTERVAL_MAX_SEC, default: 10 },
+        farmMin: { type: 'number', min: 1, max: INTERVAL_MAX_SEC, default: 2 },
+        farmMax: { type: 'number', min: 1, max: INTERVAL_MAX_SEC, default: 2 },
+        friendMin: { type: 'number', min: 1, max: INTERVAL_MAX_SEC, default: 10 },
+        friendMax: { type: 'number', min: 1, max: INTERVAL_MAX_SEC, default: 10 },
     },
     additionalProperties: false,
 };
