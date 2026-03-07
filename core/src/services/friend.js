@@ -114,6 +114,16 @@ function addFriendToBlacklist(friendGid, friendName, reason = '') {
 // ============ 好友 API ============
 
 async function getAllFriends() {
+    const isQQ = CONFIG.platform === 'qq';
+    if (isQQ) {
+        const syncReq = types.SyncAllRequest || types.SyncAllFriendsRequest;
+        const syncRep = types.SyncAllReply || types.SyncAllFriendsReply;
+        if (!syncReq || !syncRep) throw new Error('SyncAll 接口类型未加载');
+        const body = syncReq.encode(syncReq.create({ open_ids: [] })).finish();
+        const { body: replyBody } = await sendMsgAsync('gamepb.friendpb.FriendService', 'SyncAll', body);
+        return syncRep.decode(replyBody);
+    }
+
     const body = types.GetAllFriendsRequest.encode(types.GetAllFriendsRequest.create({})).finish();
     const { body: replyBody } = await sendMsgAsync('gamepb.friendpb.FriendService', 'GetAll', body);
     return types.GetAllFriendsReply.decode(replyBody);
